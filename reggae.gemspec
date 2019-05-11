@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.files       = [
                    "bin/reggae",
                    "lib/ast.rb",
+                   "lib/version.rb",
                    "lib/parser.rb",
                    "lib/code.rb",
                    "lib/compiler.rb",
