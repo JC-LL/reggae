@@ -5,4 +5,4 @@ It was developped in the scope of a small start-up named Modae Technologies.
 
 # install
 - build the reggae Ruby gem : gem build reggae.gemspec
-- install it : gem install astreo<version>.gem
+- install it : gem install reggae<version>.gem
