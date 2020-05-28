@@ -17,7 +17,8 @@ module Reggae
 
     #.......................VHDL.......................
     def generate_from model
-      @dest_dir=$working_dir #+"/src"
+      $working_dir||=Dir.pwd
+      @dest_dir=$working_dir  #+"/src"
       if !Dir.exists?(@dest_dir)
         FileUtils.mkdir(@dest_dir)
       end
@@ -96,7 +97,7 @@ module Reggae
       puts "   - code for IP package"+(" "+filename).rjust(38,'.')
       code=Code.new
       code << header
-      code << "package #{zone.name}_pkg is"
+      code << "package #{zone.name}_regif_pkg is"
       code.indent=2
       zone.registers.each do |reg|
         code.newline
@@ -193,12 +194,12 @@ module Reggae
       code.indent=0
       code.newline
       code << "end package;"
-      @vhdl_files << vhdl="#{@dest_dir}/#{zone.name}_pkg.vhd"
+      @vhdl_files << vhdl="#{@dest_dir}/#{zone.name}_regif_pkg.vhd"
       code.save_as(vhdl,verbose=false)
     end
 
     def gen_ip_regif zone
-      filename=zone.name.to_s+"_reg.vhd"
+      filename=zone.name.to_s+"_regif.vhd"
       puts "   - code for IP register interface "+(" "+filename).rjust(26,'.')
       code=Code.new
       code << header
@@ -359,7 +360,7 @@ module Reggae
       code.newline
       #code << gen_vivadohls_instances(zone)
       code << "end RTL;"
-      filename="#{@dest_dir}/#{zone.name}_reg.vhd"
+      filename="#{@dest_dir}/#{zone.name}_regif.vhd"
       code.save_as filename,verbose=false
       @vhdl_files << filename
       code
@@ -606,7 +607,7 @@ module Reggae
     def gen_system mm
       filename="#{@dest_dir}/#{mm.name}.vhd"
       generate_assets
-      puts "   - code for complete system "+(" "+filename).rjust(32,".")
+      puts "   - code for complete system "+(" "+filename).rjust(32,".") unless @options[:mute]
       code=Code.new
       code << header
       code << "entity #{mm.name} is"
@@ -631,7 +632,7 @@ module Reggae
     end
 
     def generate_assets
-      puts "   - code for assets"+"<8 vhdl files>".rjust(42,'.')
+      puts "   - code for assets"+"<8 vhdl files>".rjust(42,'.') unless @options[:mute]
       dir=__dir__
       assets_dir=dir+"/../../assets/"
       #vhdl_assets=Dir["#{assets_dir}/*.vhd"]

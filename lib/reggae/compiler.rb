@@ -10,10 +10,11 @@ module Reggae
   class Compiler
 
     attr_accessor :ast
+    attr_accessor :options
 
-    def initialize
-      puts "Reggae generator #{VERSION}"
-      @options={}
+    def initialize options={}
+      @options=options
+      puts "Reggae generator #{VERSION}" unless @options[:mute]
     end
 
     def analyze_options args
@@ -31,7 +32,7 @@ module Reggae
           puts
           puts "Generates an IP-based system, from its memory-map expressed in s-expressions."
           puts
-          puts "Author : Jean-Christophe Le Lann - mail: lelannje@ensta-bretagne.fr"
+          puts "Author mail: jean-christophe.le_lann@ensta-bretagne.fr"
           puts
           @options[:show_help]=true
           puts opts
@@ -61,6 +62,10 @@ module Reggae
         opts.on("--from_vivado_hls", "Indicates that the sexp file is generated from VHDL_WRAP tuned for VivadoHLS") do
           @options[:from_vivado_hls]=true
         end
+
+        opts.on("-m", "silently proceed") do
+          @options[:mute]=true
+        end
       end
 
       begin
@@ -80,10 +85,12 @@ module Reggae
 
     def compile
       if @options.any?
-        puts
-        puts "running with the following options :"
-        pp @options
-        puts
+        unless @options[:mute]
+          puts
+          puts "running with the following options :"
+          pp @options
+          puts
+        end
       end
       @ast=parse(@filename)
       #pretty_print
@@ -91,18 +98,18 @@ module Reggae
     end
 
     def parse filename
-      puts "=> parsing #{filename}"
+      puts "=> parsing #{filename}" unless @options[:mute]
       $working_dir=Dir.pwd
       @ast=Reggae::Parser.new.parse(filename)
     end
 
     def pretty_print
-      puts "=> pretty print..."
+      puts "=> pretty print..." unless @options[:mute]
       Reggae::Visitor.new.visit(ast)
     end
 
     def generate_vhdl
-      puts "=> generating VHDL..."
+      puts "=> generating VHDL..." unless @options[:mute]
       Reggae::VHDLGenerator.new(@options).generate_from(ast)
     end
   end
