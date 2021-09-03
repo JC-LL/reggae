@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
                    "assets/uart.vhd",
                    "tests/regmap.sexp"
                   ]
+  s.add_runtime_dependency 'sxp'
   s.executables << 'reggae'
   s.homepage    = 'http://www.ensta-bretagne.fr/lelann/reggae'
   s.license       = 'MIT'
