@@ -10,6 +10,7 @@ module Reggae
       super()
       @options=options
       @verbose=options[:verbose]
+      @work=@options[:work]||'work'
       @vhdl_entity_arch=nil
       @vhdl_pkg=nil
       @vhdl_files=[]
@@ -34,6 +35,7 @@ module Reggae
         puts e.backtrace
         puts e
       end
+      return @vhdl_files
     end
 
     def now
@@ -194,16 +196,20 @@ module Reggae
       code.indent=0
       code.newline
       code << "end package;"
-      @vhdl_files << vhdl="#{@dest_dir}/#{zone.name}_regif_pkg.vhd"
+      #@vhdl_files << vhdl="#{@dest_dir}/#{zone.name}_regif_pkg.vhd"
+      @vhdl_files << vhdl="#{zone.name}_regif_pkg.vhd"
       code.save_as(vhdl,verbose=false)
     end
 
     def gen_ip_regif zone
-      filename=zone.name.to_s+"_regif.vhd"
+      filename=zone.name.to_s+"_reg.vhd"
       puts "   - code for IP register interface "+(" "+filename).rjust(26,'.')
       code=Code.new
       code << header
-      code << "use work.#{zone.name}_pkg.all;"
+      if @work!='work'
+        code << "library #{@work};"
+      end
+      code << "use #{@work}.#{zone.name}_regif_pkg.all;"
       code.newline
       code << "entity #{zone.name}_reg is"
       code.indent=2
@@ -360,7 +366,8 @@ module Reggae
       code.newline
       #code << gen_vivadohls_instances(zone)
       code << "end RTL;"
-      filename="#{@dest_dir}/#{zone.name}_regif.vhd"
+      #filename="#{@dest_dir}#{zone.name}_regif.vhd"
+      filename="#{zone.name}_regif.vhd"
       code.save_as filename,verbose=false
       @vhdl_files << filename
       code
@@ -371,7 +378,7 @@ module Reggae
       puts "   - code for IP "+(" "+filename).rjust(45,'.')
       code=Code.new
       code << header
-      code << "use work.#{zone.name}_pkg.all;"
+      code << "use #{@work}.#{zone.name}_pkg.all;"
       code.newline
       code << "entity #{zone.name} is"
       code.indent=2
@@ -405,7 +412,8 @@ module Reggae
       code.newline
       code.indent=0
       code << "end RTL;"
-      filename="#{@dest_dir}/#{zone.name}.vhd"
+      #filename="#{@dest_dir}/#{zone.name}.vhd"
+      filename="#{zone.name}.vhd"
       code.save_as filename,verbose=false
       if @options[:show_code]
         puts code.finalize
@@ -463,7 +471,7 @@ module Reggae
 
     def gen_regif_instance zone
       code=Code.new
-      code << "regif_inst : entity work.#{zone.name}_reg"
+      code << "regif_inst : entity #{@work}.#{zone.name}_reg"
       code.indent=2
       code << "port map("
       code.indent=4
@@ -490,7 +498,7 @@ module Reggae
       if zone.instances.any?
         zone.instances.each do |inst|
           @vhdl_files << inst.name.to_s+".vhd"
-          code << "inst_#{inst.name} : entity work.#{inst.name}"
+          code << "inst_#{inst.name} : entity #{@work}.#{inst.name}"
           code.indent=2
           code << "port map("
           code.indent=4
@@ -769,7 +777,7 @@ module Reggae
     def instance_of_uart_bus_master
       code=Code.new
       code << "-- ============== UART as Master of bus !========="
-      code << "uart_master : entity work.uart_bus_master"
+      code << "uart_master : entity #{@work}.uart_bus_master"
       code << "  generic map (DATA_WIDTH => #{@data_size})"
       code << "  port map("
       code << "    reset_n => reset_n,"
@@ -815,7 +823,7 @@ module Reggae
       code=Code.new
       code.newline
       code << "-- =================== DEBUG ===================="
-      code << "ticker : entity work.slow_ticker(rtl)"
+      code << "ticker : entity #{@work}.slow_ticker(rtl)"
       code << "  port map("
       code << "    reset_n   => reset_n,"
       code << "    fast_clk  => clk,"

@@ -31,6 +31,7 @@ module Reggae
     include Visitable
   end
 
+
   class Instance < Struct.new(:name,:mapping)
     include Visitable
   end

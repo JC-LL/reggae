@@ -94,7 +94,8 @@ module Reggae
       end
       @ast=parse(@filename)
       #pretty_print
-      generate_vhdl
+      vhdl_files=generate_vhdl()
+      return vhdl_files
     end
 
     def parse filename
