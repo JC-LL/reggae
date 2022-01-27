@@ -19,7 +19,7 @@ module Reggae
     #.......................VHDL.......................
     def generate_from model
       $working_dir||=Dir.pwd
-      @dest_dir=$working_dir  #+"/src"
+      @dest_dir=$working_dir+"/hdl"
       if !Dir.exists?(@dest_dir)
         FileUtils.mkdir(@dest_dir)
       end
@@ -86,8 +86,12 @@ module Reggae
     def visitZone zone,args=nil
       inc "Zone"
       gen_ip_pkg(zone)
-      gen_ip_regif(zone)
-      gen_ip_entity_arch(zone)
+      if zone.registers.any?
+        gen_ip_regif(zone)
+        gen_ip_entity_arch(zone)
+      elsif zone.brams.any?
+        gen_ip_brams(zone)
+      end
       if @options[:gen_xdc]
         gen_xdc(zone)
       end
@@ -151,53 +155,57 @@ module Reggae
         code << ");"
       end
 
-      code.newline
-      code << "type registers_type is record"
-      code.indent=4
-      max_just=zone.registers.map{|reg| reg.name.size}.max
-      zone.registers.each do |reg|
-        code << "#{reg.name.to_s.ljust(max_just,' ')} : #{reg.name}_reg; -- #{reg.address}"
-      end
-      code.indent=2
-      code << "end record;"
-
-      code.newline
-      code << "constant REGS_INIT : registers_type :=("
-      code.indent=4
-      max_just=zone.registers.map{|reg| reg.name.size}.max
-      zone.registers.each do |reg|
-        code << "#{reg.name.to_s.ljust(max_just,' ')} => #{reg.name.upcase}_INIT,"
-      end
-      code.indent=2
-      code << ");"
-      code.newline
-
-      code << "--sampling values from IPs"
-      code << "type sampling_type is record"
-      code.indent=4
-      zone.registers.each do |reg|
-        if reg.sampling
-          reg.bits.each do |bit|
-            type="std_logic"
-            code << "#{reg.name.to_s}_#{bit.name} : #{type};"
-          end
-          reg.bitfields.each do |bitf|
-            min,max=bitf.position.minmax
-            nb_bits=(max-min)
-            type="std_logic_vector(#{nb_bits} downto 0)"
-            code << "#{reg.name.to_s}_#{bitf.name} : #{type};"
-          end
-
+      if zone.registers.any?
+        code.newline
+        code << "type registers_type is record"
+        code.indent=4
+        max_just=zone.registers.map{|reg| reg.name.size}.max
+        zone.registers.each do |reg|
+          code << "#{reg.name.to_s.ljust(max_just,' ')} : #{reg.name}_reg; -- #{reg.address}"
         end
-      end
-      code.indent=2
-      code << "end record;"
+        code.indent=2
+        code << "end record;"
+
+        code.newline
+        code << "constant REGS_INIT : registers_type :=("
+        code.indent=4
+        max_just=zone.registers.map{|reg| reg.name.size}.max
+        zone.registers.each do |reg|
+          code << "#{reg.name.to_s.ljust(max_just,' ')} => #{reg.name.upcase}_INIT,"
+        end
+        code.indent=2
+        code << ");"
+        code.newline
+
+        code << "--sampling values from IPs"
+        code << "type sampling_type is record"
+        code.indent=4
+        zone.registers.each do |reg|
+
+          if reg.sampling
+            reg.bits.each do |bit|
+              type="std_logic"
+              code << "#{reg.name.to_s}_#{bit.name} : #{type};"
+            end
+            reg.bitfields.each do |bitf|
+              min,max=bitf.position.minmax
+              nb_bits=(max-min)
+              type="std_logic_vector(#{nb_bits} downto 0)"
+              code << "#{reg.name.to_s}_#{bitf.name} : #{type};"
+            end
+          else
+            code << "dummy : std_logic;"
+          end
+        end
+        code.indent=2
+        code << "end record;"
+      end # registers
 
       code.indent=0
       code.newline
       code << "end package;"
-      #@vhdl_files << vhdl="#{@dest_dir}/#{zone.name}_regif_pkg.vhd"
-      @vhdl_files << vhdl="#{zone.name}_regif_pkg.vhd"
+      @vhdl_files << vhdl="#{@dest_dir}/#{zone.name}_regif_pkg.vhd"
+      #@vhdl_files << vhdl="#{zone.name}_regif_pkg.vhd"
       code.save_as(vhdl,verbose=false)
     end
 
@@ -323,7 +331,8 @@ module Reggae
       code.indent=4
       code << "end if;"
       code.indent=2
-      code << "end process;"
+      code <  def gen_processes_for_registers zone
+    end< "end process;"
       #-----END write process
       code.newline
       code << "read_reg_p: process(reset_n,clk)"
@@ -336,7 +345,8 @@ module Reggae
       code << "elsif rising_edge(clk) then"
       code.indent=6
       # code << "dataout <= (others=>'0');"
-      code << "if ce='1' then"
+      code <  def gen_processes_for_registers zone
+    end< "if ce='1' then"
       code.indent=8
       code << "if we='0' then"
       code.indent=10
@@ -366,8 +376,8 @@ module Reggae
       code.newline
       #code << gen_vivadohls_instances(zone)
       code << "end RTL;"
-      #filename="#{@dest_dir}#{zone.name}_regif.vhd"
-      filename="#{zone.name}_regif.vhd"
+      filename="#{@dest_dir}/#{zone.name}_regif.vhd"
+      #filename="#{zone.name}_regif.vhd"
       code.save_as filename,verbose=false
       @vhdl_files << filename
       code
@@ -378,7 +388,7 @@ module Reggae
       puts "   - code for IP "+(" "+filename).rjust(45,'.')
       code=Code.new
       code << header
-      code << "use #{@work}.#{zone.name}_pkg.all;"
+      code << "use #{@work}.#{zone.name}_regif_pkg.all;"
       code.newline
       code << "entity #{zone.name} is"
       code.indent=2
@@ -412,8 +422,8 @@ module Reggae
       code.newline
       code.indent=0
       code << "end RTL;"
-      #filename="#{@dest_dir}/#{zone.name}.vhd"
-      filename="#{zone.name}.vhd"
+      filename="#{@dest_dir}/#{zone.name}.vhd"
+      #filename="#{zone.name}.vhd"
       code.save_as filename,verbose=false
       if @options[:show_code]
         puts code.finalize
@@ -683,7 +693,7 @@ module Reggae
       code.newline
       code << "# =====Setup design sources and constraints"
       code << "read_vhdl [ glob ../assets/*.vhd]"
-      code << "read_vhdl [ glob ../src/*.vhd]"
+      code << "read_vhdl [ glob ../hdl/*.vhd]"
       code << "read_xdc $xdc_constraints"
       code.newline
       code << "synth_design -top #{@model_name} -part $partname"
@@ -722,7 +732,7 @@ module Reggae
     end
 
     def gen_compile_script
-      dest_dir=$working_dir+"/src"
+      dest_dir=$working_dir+"/hdl"
       if !Dir.exists?(dest_dir)
         FileUtils.mkdir(dest_dir)
       end

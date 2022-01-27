@@ -27,10 +27,13 @@ module Reggae
     include Visitable
   end
 
-  class Zone < Struct.new(:name,:range,:registers,:subzones,:instances)
+  class Zone < Struct.new(:name,:range,:registers,:subzones,:brams,:instances)
     include Visitable
   end
 
+  class BlockRam < Struct.new(:size,:width,:range)
+    include Visitable
+  end
 
   class Instance < Struct.new(:name,:mapping)
     include Visitable

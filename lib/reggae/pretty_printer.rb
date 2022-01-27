@@ -81,7 +81,14 @@ module Reggae
       say reg.init
       reg.bits.each{|bit| bit.accept(self)}
       reg.bitfields.each{|bitfield| bitfield.accept(self)}
+      dec
+    end
 
+    def visitBlockRam bram,args=nil
+      inc "BlockRam"
+      say bram.size
+      say bram.width
+      bram.range.accept(self)
       dec
     end
 

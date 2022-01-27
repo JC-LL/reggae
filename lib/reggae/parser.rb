@@ -100,7 +100,7 @@ module Reggae
     end
 
     def parseZone ary
-      zone=Zone.new(nil,nil,[],[],[])
+      zone=Zone.new(nil,nil,[],[],[],[])
       ary.shift
       zone.name=ary.shift
       while ary.any?
@@ -111,6 +111,8 @@ module Reggae
           zone.registers << parseRegister(ary.shift)
         when :subzone
           zone.subzones << parseSubZone(ary.shift)
+        when :block_ram
+          zone.brams    << parseBlockRam(ary.shift)
         when :instance
           zone.instances << parseInstance(ary.shift)
         else
@@ -118,6 +120,24 @@ module Reggae
         end
       end
       zone
+    end
+
+    def parseBlockRam ary
+      inst=BlockRam.new([])
+      ary.shift
+      while ary.any?
+        case h=ary.first.header
+        when :size
+          inst.size = ary.shift.last.to_i
+        when :width
+          inst.width = ary.shift.last.to_i
+        when :range
+          inst.range = parseRange(ary.shift)
+        else
+          raise "error during parseBlockRam. Expecting 'size','width','range'. Got '#{h}'"
+        end
+      end
+      inst
     end
 
     def parseInstance ary
